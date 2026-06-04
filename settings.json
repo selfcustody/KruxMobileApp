@@ -1,1 +1,1 @@
-{"settings.i18n": {"locale": "en-US"}, "settings.appearance": {"theme": "Dark", "screensaver_time": 5}, "settings.security": {"auto_shutdown": 10, "hide_mnemonic": false}, "settings.buttons": {"debounce": 100}}
+{"settings.i18n": {"locale": "en-US"}, "settings.appearance": {"theme": "Dark", "screensaver_time": 5}, "settings.security": {"auto_shutdown": 10, "hide_mnemonic": false}, "settings.buttons": {"debounce": 100}, "settings.wallet": {"policy_type": "Single-sig"}, "settings.persist": {"location": "flash"}}

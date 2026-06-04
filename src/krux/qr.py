@@ -139,28 +139,28 @@ class QRPartParser:
     def parsed_count(self):
         """Returns the number of parsed parts so far"""
         if self.format == FORMAT_UR:
-            # Single-part URs have no expected part indexes
-            if self.decoder.fountain_decoder.expected_part_indexes is None:
+            # Single-part URs report expected_part_count == 0
+            if self.decoder.expected_part_count == 0:
                 return 1 if self.decoder.result is not None else 0
             completion_pct = self.decoder.estimated_percent_complete()
-            return math.ceil(completion_pct * self.total_count() / 2) + len(
-                self.decoder.fountain_decoder.received_part_indexes
+            return math.ceil(completion_pct * self.total_count() / 2) + min(
+                self.decoder.processed_parts_count, self.decoder.expected_part_count
             )
         return len(self.parts)
 
     def processed_parts_count(self):
         """Returns quantity of processed QR code parts"""
         if self.format == FORMAT_UR:
-            return self.decoder.fountain_decoder.processed_parts_count
+            return self.decoder.processed_parts_count
         return len(self.parts)
 
     def total_count(self):
         """Returns the total number of parts there should be"""
         if self.format == FORMAT_UR:
-            # Single-part URs have no expected part indexes
-            if self.decoder.fountain_decoder.expected_part_indexes is None:
+            # Single-part URs report expected_part_count == 0
+            if self.decoder.expected_part_count == 0:
                 return 1
-            return self.decoder.expected_part_count() * 2
+            return self.decoder.expected_part_count * 2
         return self.total
 
     def parse(self, data):
@@ -178,9 +178,10 @@ class QRPartParser:
             return index - 1
         elif self.format == FORMAT_UR:
             if not self.decoder:
-                from ur.ur_decoder import URDecoder
+                from uUR import URDecoder
 
                 self.decoder = URDecoder()
+            data = data.decode() if isinstance(data, bytes) else data
             self.decoder.receive_part(data)
         elif self.format == FORMAT_BBQR:
             from .bbqr import parse_bbqr
@@ -209,9 +210,7 @@ class QRPartParser:
     def result(self):
         """Returns the combined part data"""
         if self.format == FORMAT_UR:
-            from ur.ur import UR
-
-            return UR(self.decoder.result.type, bytearray(self.decoder.result.cbor))
+            return self.decoder.result
 
         if self.format == FORMAT_BBQR:
             from .bbqr import decode_bbqr
@@ -257,7 +256,7 @@ def to_qr_codes(data, max_width, qr_format):
                 code = qrcode.encode(part)
                 yield (code, num_parts)
         elif qr_format == FORMAT_UR:
-            from ur.ur_encoder import UREncoder
+            from uUR import UREncoder
 
             encoder = UREncoder(data, part_size, 0)
             while True:
@@ -321,7 +320,7 @@ def find_min_num_parts(data, max_width, qr_format):
     """Finds the minimum number of QR parts necessary to encode the data in
     the specified format within the max_width constraint
     """
-    encoding = "alphanumeric" if qr_format == FORMAT_BBQR else "byte"
+    encoding = "alphanumeric" if qr_format in (FORMAT_BBQR, FORMAT_UR) else "byte"
     qr_capacity = max_qr_bytes(max_width, encoding)
     if qr_format == FORMAT_PMOFN:
         data_length = len(data)
@@ -373,12 +372,20 @@ def find_min_num_parts(data, max_width, qr_format):
     return num_parts, part_size
 
 
+PMOFN_MAX_PARTS = 99  # Matches the 2-digit generator limit
+
+
 def parse_pmofn_qr_part(data):
     """Parses the QR as a P M-of-N part, extracting the part's content, index, and total"""
+    data = data.decode() if isinstance(data, bytes) else data
     of_index = data.index("of")
     space_index = data.index(" ")
     part_index = int(data[1:of_index])
     part_total = int(data[of_index + 2 : space_index])
+    if part_total < 1 or part_total > PMOFN_MAX_PARTS:
+        raise ValueError("Invalid pMofN part total: %d" % part_total)
+    if part_index < 1 or part_index > part_total:
+        raise ValueError("Invalid pMofN part index: %d" % part_index)
     return data[space_index + 1 :], part_index, part_total
 
 
@@ -386,6 +393,7 @@ def detect_format(data):
     """Detects the QR format of the given data"""
     qr_format = FORMAT_NONE
     try:
+        data = data.decode() if isinstance(data, bytes) else data
         if data.startswith("p"):
             header = data.split(" ")[0]
             if "of" in header and header[1:].split("of")[0].isdigit():

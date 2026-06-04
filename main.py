@@ -1,6 +1,9 @@
-import sys 
+import sys
 import threading
 sys.path.append("./src")
+# embit ships as a git submodule under vendor/; its package lives in the
+# repo's src/ dir, so expose that path for `import embit`.
+sys.path.append("./vendor/embit/src")
 
 from kivy.app import App
 from kivy.core.window import Window

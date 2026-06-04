@@ -39,21 +39,19 @@ from ..key import (
     P2WPKH,
     P2WSH,
     P2SH,
+    P2TR,
     SINGLESIG_SCRIPT_MAP,
     MULTISIG_SCRIPT_MAP,
     MINISCRIPT_SCRIPT_MAP,
     TYPE_SINGLESIG,
     TYPE_MULTISIG,
     TYPE_MINISCRIPT,
+    TYPE_SILENT_PAYMENT,
     POLICY_TYPE_IDS,
     NAME_MULTISIG,
 )
 from ..krux_settings import t
 from ..kboard import kboard
-
-
-DIGITS_HEX = "0123456789ABCDEF"
-DIGITS_OCT = "01234567"
 
 DOUBLE_MNEMONICS_MAX_TRIES = 200
 MASK256 = (1 << 256) - 1
@@ -257,6 +255,9 @@ class Login(MnemonicLoader):
             script_type = MINISCRIPT_SCRIPT_MAP.get(
                 Settings().wallet.script_type, P2WSH
             )
+
+        if policy_type == TYPE_SILENT_PAYMENT:
+            script_type = P2TR
 
         derivation_path = ""
 

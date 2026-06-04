@@ -52,9 +52,9 @@ class QRCodeCapture(Page):
         else:
             self.ctx.light.turn_off()
 
-    def anti_glare_control(self):
-        """Controls the anti-glare based on the user input"""
-        # self.ctx.display.to_portrait()  # Android custom
+    def mode_control(self):
+        """Controls camera mode based on the user input"""
+        self.ctx.display.to_portrait()
         mode = self.ctx.camera.toggle_camera_mode()
         if mode == QR_SCAN_MODE:
             self.ctx.display.draw_centered_text(t("Standard mode"))
@@ -136,7 +136,7 @@ class QRCodeCapture(Page):
         previous_part = None
         ur_highlighted = False
 
-        # Flush events ocurred while loading camera
+        # Flush events occurred while loading camera
         self.ctx.input.reset_ios_state()
 
         # Android Custom
@@ -160,8 +160,8 @@ class QRCodeCapture(Page):
             # Anti-glare / zoom / normal mode
             page_prev_event = self.ctx.input.page_prev_event()
             if self.ctx.input.page_event() or (kboard.is_yahboom and page_prev_event):
-                if self.ctx.camera.has_antiglare():
-                    self.anti_glare_control()
+                if self.ctx.camera.has_mode_control():
+                    self.mode_control()
                 else:
                     break
 

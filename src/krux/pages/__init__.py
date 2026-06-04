@@ -67,7 +67,7 @@ PROCEED = (BUTTON_ENTER, BUTTON_TOUCH)
 LETTERS = "abcdefghijklmnopqrstuvwxyz"
 UPPERCASE_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 NUM_SPECIAL_1 = "1234567890 !#$%()&*'"
-NUM_SPECIAL_2 = '<>.,"[]:;/{}^~|-+=_\\?@'
+NUM_SPECIAL_2 = '<>.,"[]:;/{}^~|-+=_\\?@`'
 DIGITS = "1234567890"
 
 BATTERY_WIDTH = 22
@@ -137,6 +137,12 @@ class Page:
     def flash_error(self, text):
         """Flashes text centered on the display for duration ms"""
         self.flash_text(text, theme.error_color)
+
+    def flash_success(self, text, duration=FLASH_MSG_TIME, highlight_prefix=""):
+        """Flashes success text centered on the display for duration ms"""
+        self.flash_text(
+            text, theme.go_color, duration, highlight_prefix=highlight_prefix
+        )
 
     # pylint: disable=too-many-arguments
     def capture_from_keypad(
@@ -344,10 +350,7 @@ class Page:
 
         display_mnemonic = display_mnemonic or mnemonic
         words = display_mnemonic.split(" ")
-        word_list = [
-            "{}.{}{}".format(i + 1, "  " if i + 1 < 10 else " ", word)
-            for i, word in enumerate(words)
-        ]
+        word_list = ["{:>2}. {}".format(i + 1, word) for i, word in enumerate(words)]
         if is_double_mnemonic(mnemonic):
             suffix += "*"
         if fingerprint:
@@ -859,7 +862,7 @@ class Menu:
                         )
                     if isinstance(selected_item_index, tuple):
                         return selected_item_index
-                elif btn is None and self.menu_offset == STATUS_BAR_HEIGHT:
+                elif btn is None and self.menu_offset <= STATUS_BAR_HEIGHT:
                     # Android Custom
                     return (None, MENU_SHUTDOWN)
 

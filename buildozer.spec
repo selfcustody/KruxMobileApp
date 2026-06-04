@@ -29,7 +29,8 @@ source.include_exts = py,png,jpg,kv,atlas,ttf
 #source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-#source.exclude_dirs = tests, bin, venv
+# Keep the embit submodule's runtime package only; drop its tests/examples/docs.
+source.exclude_dirs = vendor/embit/tests, vendor/embit/examples, vendor/embit/docs
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
@@ -309,7 +310,9 @@ android.allow_backup = True
 #p4a.source_dir =
 
 # (str) The directory in which python-for-android should look for your own build recipes (if any)
-#p4a.local_recipes =
+# Local jpeg recipe overrides the upstream one to fix CMake 4.x build failures
+# (see p4a-recipes/jpeg/__init__.py).
+p4a.local_recipes = ./p4a-recipes
 
 # (str) Filename to the hook for p4a
 p4a.hook = camerax_provider/gradle_options.py

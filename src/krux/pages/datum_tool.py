@@ -78,22 +78,19 @@ SLOW_ENCODING_MAX_SIZE = 2**14  # base43,base58,bech32 not offered above this si
 
 def urobj_to_data(ur_obj):
     """returns flatened data from a UR object. belongs in qr or qr_capture???"""
-    import urtypes
+    from uUR import Types
 
     if ur_obj.type == "crypto-bip39":
-        data = urtypes.crypto.BIP39.from_cbor(ur_obj.cbor).words
+        data = Types.bip39_words_from_cbor(ur_obj.cbor)
+        data = " ".join(data)
     elif ur_obj.type == "crypto-account":
-        data = (
-            urtypes.crypto.Account.from_cbor(ur_obj.cbor)
-            .output_descriptors[0]
-            .descriptor()
-        )
+        data = Types.output_from_cbor_account(ur_obj.cbor)
     elif ur_obj.type == "crypto-output":
-        data = urtypes.crypto.Output.from_cbor(ur_obj.cbor).descriptor()
+        data = Types.output_from_cbor(ur_obj.cbor)
     elif ur_obj.type == "crypto-psbt":
-        data = urtypes.crypto.PSBT.from_cbor(ur_obj.cbor).data
+        data = Types.psbt_from_cbor(ur_obj.cbor)
     elif ur_obj.type == "bytes":
-        data = urtypes.bytes.Bytes.from_cbor(ur_obj.cbor).data
+        data = Types.bytes_from_cbor(ur_obj.cbor)
     else:
         data = None
     return data
@@ -174,7 +171,7 @@ def detect_encodings(str_data, verify=True):
     # pylint: disable=R0912,R0915
     from binascii import unhexlify
     from krux.baseconv import base_decode, base_encode
-    from embit.bech32 import bech32_decode, Encoding
+    from embit.bech32 import bech32_decode, Encoding, Bech32DecodeError
 
     encodings = []
 
@@ -225,7 +222,10 @@ def detect_encodings(str_data, verify=True):
         encoding = None
         if max_chr <= "Z":
             if verify:
-                encoding, _, _ = bech32_decode(str_data)
+                try:
+                    encoding, _, _ = bech32_decode(str_data)
+                except Bech32DecodeError:
+                    pass
                 wdt.feed()
             if encoding == Encoding.BECH32:
                 encodings.append("BECH32")
@@ -233,7 +233,10 @@ def detect_encodings(str_data, verify=True):
                 encodings.append("BECH32M")
         elif max_chr <= "z":
             if verify:
-                encoding, _, _ = bech32_decode(str_data)
+                try:
+                    encoding, _, _ = bech32_decode(str_data)
+                except Bech32DecodeError:
+                    pass
             if encoding == Encoding.BECH32:
                 encodings.append("bech32")
             elif encoding == Encoding.BECH32M:
@@ -325,6 +328,12 @@ class DatumToolMenu(Page):
         if fmt == 2:
             title += ", UR:" + contents.type
             contents = urobj_to_data(contents)
+
+        if isinstance(contents, bytes):
+            try:
+                contents = contents.decode()
+            except:
+                pass
 
         page = DatumTool(self.ctx)
         page.contents, page.title = contents, title
@@ -430,8 +439,6 @@ class DatumTool(Page):
         """Reusable handler for viewing a QR code"""
         from ..qr import QR_CAPACITY_BYTE, QR_CAPACITY_ALPHANUMERIC, QR_CAPACITY_NUMERIC
         from ..bbqr import encode_bbqr
-        import urtypes
-        from ur.ur import UR
 
         # Helper function to check if character is alphanumeric
         def is_alnum(c):
@@ -521,11 +528,13 @@ class DatumTool(Page):
                     encoded = encode_bbqr(encoded, file_type=menu_opts[idx][1][1])
 
                 elif qr_fmt == FORMAT_UR:
+                    from uUR import UR, Types
+
                     ur_type = menu_opts[idx][1][1]
                     if ur_type == "bytes":
-                        encoded = UR(ur_type, urtypes.Bytes(encoded).to_cbor())
+                        encoded = UR(ur_type, Types.bytes_to_cbor(encoded))
                     elif ur_type == "crypto-psbt":
-                        encoded = UR(ur_type, urtypes.PSBT(encoded).to_cbor())
+                        encoded = UR(ur_type, Types.psbt_to_cbor(encoded))
                     # TODO: other urtypes
 
             try:
@@ -643,7 +652,7 @@ class DatumTool(Page):
             if pages[-1] < endpos < content_len:
                 pages.append(endpos)
 
-            offset_y = DEFAULT_PADDING + (info_len) * FONT_HEIGHT + 1
+            offset_y = DEFAULT_PADDING + info_len * FONT_HEIGHT + 1
             for line in lines:
                 self.ctx.display.draw_string(offset_x, offset_y, line)
                 offset_y += FONT_HEIGHT
@@ -838,7 +847,7 @@ class DatumTool(Page):
         menu = Menu(
             self.ctx,
             todo_menu,
-            offset=(info_len + 1) * FONT_HEIGHT + DEFAULT_PADDING + 2,
+            offset=info_len * FONT_HEIGHT + DEFAULT_PADDING,
             **back_status
         )
         _, status = menu.run_loop()
