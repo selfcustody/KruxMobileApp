@@ -37,7 +37,7 @@ source.exclude_dirs = vendor/embit/tests, vendor/embit/examples, vendor/embit/do
 #source.exclude_patterns = license,images/*/*.jpg
 
 # (str) Application versioning (method 1)
-version = 25.05.0
+version = 26.06.0
 
 # (str) Application versioning (method 2)
 # version.regex = __version__ = ['"](.*)['"]

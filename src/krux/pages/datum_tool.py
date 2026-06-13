@@ -225,7 +225,7 @@ def detect_encodings(str_data, verify=True):
                 try:
                     encoding, _, _ = bech32_decode(str_data)
                 except Bech32DecodeError:
-                    pass
+                    encoding = None
                 wdt.feed()
             if encoding == Encoding.BECH32:
                 encodings.append("BECH32")
@@ -236,7 +236,7 @@ def detect_encodings(str_data, verify=True):
                 try:
                     encoding, _, _ = bech32_decode(str_data)
                 except Bech32DecodeError:
-                    pass
+                    encoding = None
             if encoding == Encoding.BECH32:
                 encodings.append("bech32")
             elif encoding == Encoding.BECH32M:
